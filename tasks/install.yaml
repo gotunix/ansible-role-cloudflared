@@ -1,0 +1,52 @@
+---
+# Install cloudflared from the official Cloudflare repository
+
+- name: Install prerequisites
+  ansible.builtin.package:
+    name:
+      - gnupg
+      - apt-transport-https
+    state: present
+
+- name: Download Cloudflare GPG key
+  ansible.builtin.get_url:
+    url: https://pkg.cloudflare.com/cloudflare-main.gpg
+    dest: /usr/share/keyrings/cloudflare-main.gpg
+    mode: "0644"
+
+- name: Add Cloudflare apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg]
+      https://pkg.cloudflare.com/cloudflared
+      {{ cloudflared_apt_release }} main
+    filename: cloudflared
+    state: present
+
+- name: Install cloudflared
+  ansible.builtin.package:
+    name: cloudflared
+    state: present
+
+- name: Create cloudflared group
+  ansible.builtin.group:
+    name: "{{ cloudflared_group }}"
+    system: true
+  when: cloudflared_group != 'root'
+
+- name: Create cloudflared service user
+  ansible.builtin.user:
+    name: "{{ cloudflared_user }}"
+    group: "{{ cloudflared_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+  when: cloudflared_user != 'root'
+
+- name: Ensure config directory exists
+  ansible.builtin.file:
+    path: "{{ cloudflared_config_dir }}"
+    state: directory
+    owner: "{{ cloudflared_user }}"
+    group: "{{ cloudflared_group }}"
+    mode: "0750"

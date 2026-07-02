@@ -1,0 +1,12 @@
+---
+# Handlers for the cloudflared role
+
+
+- name: Restart cloudflared tunnels
+  ansible.builtin.systemd:
+    name: "cloudflared-{{ item.name }}"
+    state: restarted
+    daemon_reload: true
+  loop: "{{ cloudflared_tunnels }}"
+  loop_control:
+    label: "{{ item.name }}"

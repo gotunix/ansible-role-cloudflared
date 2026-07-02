@@ -1,0 +1,68 @@
+---
+# Configure and start each cloudflare tunnel
+# Supports two modes:
+#   - credentials: tunnel_id + credentials JSON (from CLI)
+#   - token: tunnel token string (from Cloudflare dashboard)
+
+# ---- Token-based tunnels ----
+
+- name: Deploy tunnel token environment file
+  ansible.builtin.copy:
+    content: "TUNNEL_TOKEN={{ item.token }}"
+    dest: "{{ cloudflared_config_dir }}/{{ item.name }}.env"
+    owner: "{{ cloudflared_user }}"
+    group: "{{ cloudflared_group }}"
+    mode: "0600"
+  loop: "{{ cloudflared_tunnels | selectattr('token', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  no_log: true
+  notify: "Restart cloudflared tunnels"
+
+# ---- Credentials-based tunnels ----
+
+- name: Deploy tunnel credentials
+  ansible.builtin.copy:
+    content: "{{ item.credentials }}"
+    dest: "{{ cloudflared_config_dir }}/{{ item.tunnel_id }}.json"
+    owner: "{{ cloudflared_user }}"
+    group: "{{ cloudflared_group }}"
+    mode: "0600"
+  loop: "{{ cloudflared_tunnels | selectattr('credentials', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  no_log: true
+
+- name: Deploy tunnel config
+  ansible.builtin.template:
+    src: tunnel-config.yaml.j2
+    dest: "{{ cloudflared_config_dir }}/{{ item.name }}.yaml"
+    owner: "{{ cloudflared_user }}"
+    group: "{{ cloudflared_group }}"
+    mode: "0640"
+  loop: "{{ cloudflared_tunnels | selectattr('credentials', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  notify: "Restart cloudflared tunnels"
+
+# ---- All tunnels — systemd service ----
+
+- name: Deploy systemd unit for each tunnel
+  ansible.builtin.template:
+    src: cloudflared.service.j2
+    dest: "/etc/systemd/system/cloudflared-{{ item.name }}.service"
+    mode: "0644"
+  loop: "{{ cloudflared_tunnels }}"
+  loop_control:
+    label: "{{ item.name }}"
+  notify: "Restart cloudflared tunnels"
+
+- name: Enable and start tunnel services
+  ansible.builtin.systemd:
+    name: "cloudflared-{{ item.name }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: "{{ cloudflared_tunnels }}"
+  loop_control:
+    label: "{{ item.name }}"

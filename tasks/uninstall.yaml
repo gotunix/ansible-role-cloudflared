@@ -1,0 +1,60 @@
+---
+# Uninstall cloudflared and remove all tunnel configs
+
+- name: Stop and disable tunnel services
+  ansible.builtin.systemd:
+    name: "cloudflared-{{ item.name }}"
+    state: stopped
+    enabled: false
+  loop: "{{ cloudflared_tunnels }}"
+  loop_control:
+    label: "{{ item.name }}"
+  failed_when: false
+
+- name: Remove systemd units
+  ansible.builtin.file:
+    path: "/etc/systemd/system/cloudflared-{{ item.name }}.service"
+    state: absent
+  loop: "{{ cloudflared_tunnels }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Remove config directory
+  ansible.builtin.file:
+    path: "{{ cloudflared_config_dir }}"
+    state: absent
+
+- name: Remove cloudflared package
+  ansible.builtin.package:
+    name: cloudflared
+    state: absent
+
+- name: Remove Cloudflare apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg]
+      https://pkg.cloudflare.com/cloudflared
+      {{ cloudflared_apt_release }} main
+    filename: cloudflared
+    state: absent
+
+- name: Remove Cloudflare GPG key
+  ansible.builtin.file:
+    path: /usr/share/keyrings/cloudflare-main.gpg
+    state: absent
+
+- name: Remove cloudflared service user
+  ansible.builtin.user:
+    name: "{{ cloudflared_user }}"
+    state: absent
+  when: cloudflared_user != 'root'
+
+- name: Remove cloudflared group
+  ansible.builtin.group:
+    name: "{{ cloudflared_group }}"
+    state: absent
+  when: cloudflared_group != 'root'

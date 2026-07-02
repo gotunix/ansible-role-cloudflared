@@ -1,0 +1,41 @@
+---
+# cloudflared role — default variables
+
+# ---- State ----
+cloudflared_state: present          # present | absent
+
+# ---- Paths ----
+cloudflared_config_dir: /etc/cloudflared
+
+# ---- APT repository ----
+cloudflared_apt_release: any        # 'any' works for all distros; or use 'bookworm', 'jammy', etc.
+
+# ---- Service user ----
+cloudflared_user: cloudflared
+cloudflared_group: cloudflared
+
+# ---- Tunnels ----
+# List of tunnel dicts. Two modes are supported:
+#
+# Token-based (dashboard manages ingress):
+#
+#   cloudflared_tunnels:
+#     - name: web
+#       token: "{{ vault_web_token }}"
+#
+# Credentials-based (Ansible manages ingress):
+#
+#   cloudflared_tunnels:
+#     - name: web-tunnel
+#       tunnel_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+#       credentials: "{{ vault_web_tunnel_creds }}"   # JSON string (vault)
+#       ingress:
+#         - hostname: app.example.com
+#           service: http://localhost:8080
+#         - hostname: api.example.com
+#           service: http://localhost:3000
+#           originRequest:                            # optional per-route settings
+#             noTLSVerify: true
+#         - service: http_status:404                  # catch-all (required)
+#
+cloudflared_tunnels: []

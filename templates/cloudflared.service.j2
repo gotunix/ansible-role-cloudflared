@@ -1,0 +1,31 @@
+# {{ ansible_managed }}
+# Cloudflare Tunnel service — {{ item.name }}
+
+[Unit]
+Description=Cloudflare Tunnel — {{ item.name }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ cloudflared_user }}
+Group={{ cloudflared_group }}
+{% if item.token is defined %}
+EnvironmentFile={{ cloudflared_config_dir }}/{{ item.name }}.env
+ExecStart=/usr/bin/cloudflared tunnel run --token $TUNNEL_TOKEN
+{% else %}
+ExecStart=/usr/bin/cloudflared tunnel --config {{ cloudflared_config_dir }}/{{ item.name }}.yaml run
+{% endif %}
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65535
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ cloudflared_config_dir }}
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

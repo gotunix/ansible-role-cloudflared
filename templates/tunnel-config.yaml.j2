@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+# Cloudflare Tunnel config — {{ item.name }}
+
+tunnel: {{ item.tunnel_id }}
+credentials-file: {{ cloudflared_config_dir }}/{{ item.tunnel_id }}.json
+
+ingress:
+{% for rule in item.ingress %}
+{% if rule.hostname is defined %}
+  - hostname: {{ rule.hostname }}
+    service: {{ rule.service }}
+{% if rule.originRequest is defined %}
+    originRequest:
+{% for key, value in rule.originRequest.items() %}
+      {{ key }}: {{ value }}
+{% endfor %}
+{% endif %}
+{% else %}
+  - service: {{ rule.service }}
+{% endif %}
+{% endfor %}

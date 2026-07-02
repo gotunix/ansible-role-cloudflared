@@ -1,0 +1,23 @@
+---
+# cloudflared role — task orchestrator
+
+- name: Uninstall cloudflared
+  ansible.builtin.import_tasks: uninstall.yaml
+  tags:
+    - cloudflared
+    - uninstall
+  when: cloudflared_state == 'absent'
+
+- name: Install cloudflared
+  ansible.builtin.import_tasks: install.yaml
+  tags:
+    - cloudflared
+    - install
+  when: cloudflared_state == 'present'
+
+- name: Configure tunnels
+  ansible.builtin.import_tasks: configure.yaml
+  tags:
+    - cloudflared
+    - configure
+  when: cloudflared_state == 'present'
